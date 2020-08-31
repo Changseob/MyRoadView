@@ -46,14 +46,7 @@ public class MainActivity extends AppCompatActivity
     private MapView mMapView;
 
     private LocationManager mLocationManager;
-
-    private Location mGpsLocation = null;
-    private Location mNetLocation = null;
-    private Location mPassiveLocation = null;
     private Location mInitialLocation = null;
-
-
-
 
     @SuppressLint("MissingPermission")
     @Override
@@ -64,12 +57,7 @@ public class MainActivity extends AppCompatActivity
         mLocationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 1, this);
         mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 100, 1, this);
-
-        // priority: gps > network > passive
-
-
-
-
+        
         setContentView(R.layout.activity_main);
 
         ViewGroup mapViewContainer = (ViewGroup) findViewById(R.id.map_view_root);
