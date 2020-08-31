@@ -5,21 +5,31 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
+import net.daum.mf.map.api.MapCircle;
 import net.daum.mf.map.api.MapLayout;
+import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
-        implements MapView.OpenAPIKeyAuthenticationResultListener, MapView.MapViewEventListener{
+        implements MapView.OpenAPIKeyAuthenticationResultListener, MapView.MapViewEventListener, LocationListener{
 
     final String TAG = "MainActivity";
 
@@ -35,10 +45,31 @@ public class MainActivity extends AppCompatActivity
 
     private MapView mMapView;
 
+    private LocationManager mLocationManager;
+
+    private Location mGpsLocation = null;
+    private Location mNetLocation = null;
+    private Location mPassiveLocation = null;
+    private Location mInitialLocation = null;
+
+
+
+
+    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         checkPermissions();
+
+        mLocationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 1, this);
+        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 100, 1, this);
+
+        // priority: gps > network > passive
+
+
+
+
         setContentView(R.layout.activity_main);
 
         ViewGroup mapViewContainer = (ViewGroup) findViewById(R.id.map_view_root);
@@ -48,9 +79,8 @@ public class MainActivity extends AppCompatActivity
         mMapView.setMapViewEventListener(this);
         mMapView.setDaumMapApiKey(getKaKaoAPIKeyFromManifest());
         mMapView.setMapType(MapView.MapType.Standard);
-        mapViewContainer.addView(mapLayout);
-//        /Log.e(TAG, "dsf");
 
+        mapViewContainer.addView(mapLayout);
     }
 
 
@@ -144,6 +174,54 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onMapViewMoveFinished(MapView mapView, MapPoint mapPoint) {
+
+    }
+
+
+    @Override
+    public void onLocationChanged(Location location) {
+        mInitialLocation = location;
+
+        Log.i(TAG, "initial location: (" + mInitialLocation.getLatitude() + ", " + mInitialLocation.getLongitude() + "), accuracy: " + mInitialLocation.getAccuracy() + "m");
+
+        MapPoint currentMapPoint = MapPoint.mapPointWithGeoCoord(mInitialLocation.getLatitude(),mInitialLocation.getLongitude());
+        mMapView.setMapCenterPoint(currentMapPoint, false);
+
+        // 1px = 1m in ZoomLevel3
+        mMapView.setZoomLevel(3, false);
+
+        // draw pin on current(initial) location
+        MapPOIItem marker = new MapPOIItem();
+        marker.setItemName("Current Location");
+        marker.setTag(0);
+        marker.setMapPoint(currentMapPoint);
+        marker.setMarkerType(MapPOIItem.MarkerType.BluePin);
+        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin);
+        mMapView.addPOIItem(marker);
+
+        // draw circle for accuracy
+        MapCircle locationAccuracyCircle = new MapCircle(currentMapPoint, (int)mInitialLocation.getAccuracy(), Color.argb(255, 255,0,255), Color.argb(91, 216,191,216));
+        mMapView.addCircle(locationAccuracyCircle);
+
+        // set proper zoom level
+        mMapView.setZoomLevel(1, true);
+
+        // remove initial updates
+        mLocationManager.removeUpdates(this);
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
 
     }
 }
