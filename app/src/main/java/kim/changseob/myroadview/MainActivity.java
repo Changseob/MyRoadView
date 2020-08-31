@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
-        implements MapView.OpenAPIKeyAuthenticationResultListener, MapView.MapViewEventListener, LocationListener{
+        implements MapView.OpenAPIKeyAuthenticationResultListener, MapView.MapViewEventListener, MapView.POIItemEventListener, LocationListener{
 
     final String TAG = "MainActivity";
 
@@ -57,7 +58,7 @@ public class MainActivity extends AppCompatActivity
         mLocationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 1, this);
         mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 100, 1, this);
-        
+
         setContentView(R.layout.activity_main);
 
         ViewGroup mapViewContainer = (ViewGroup) findViewById(R.id.map_view_root);
@@ -112,6 +113,29 @@ public class MainActivity extends AppCompatActivity
             }
             return;
         }
+    }
+
+    @Override
+    public void onPOIItemSelected(MapView mapView, MapPOIItem mapPOIItem) {
+
+    }
+
+    @Override
+    public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem) {
+        if(mapPOIItem.getTag() == 0) { // current position
+            Intent intent = new Intent(this, MyRoadViewActivity.class);
+            startActivity(intent);
+        }
+    }
+
+    @Override
+    public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem, MapPOIItem.CalloutBalloonButtonType calloutBalloonButtonType) {
+
+    }
+
+    @Override
+    public void onDraggablePOIItemMoved(MapView mapView, MapPOIItem mapPOIItem, MapPoint mapPoint) {
+
     }
 
     @Override
@@ -180,13 +204,13 @@ public class MainActivity extends AppCompatActivity
 
         // draw pin on current(initial) location
         MapPOIItem marker = new MapPOIItem();
-        marker.setItemName("Current Location");
+        marker.setItemName("Add My Road View");
         marker.setTag(0);
         marker.setMapPoint(currentMapPoint);
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin);
         marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin);
         mMapView.addPOIItem(marker);
-
+        mMapView.setPOIItemEventListener(this);
         // draw circle for accuracy
         MapCircle locationAccuracyCircle = new MapCircle(currentMapPoint, (int)mInitialLocation.getAccuracy(), Color.argb(255, 255,0,255), Color.argb(91, 216,191,216));
         mMapView.addCircle(locationAccuracyCircle);
