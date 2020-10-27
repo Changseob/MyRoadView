@@ -15,8 +15,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import net.daum.mf.map.api.MapCircle;
@@ -28,6 +31,8 @@ import net.daum.mf.map.api.MapView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import kim.changseob.myroadview.widget.RoadViewPopupMenu;
 
 public class MainActivity extends AppCompatActivity
         implements MapView.OpenAPIKeyAuthenticationResultListener, MapView.MapViewEventListener, MapView.POIItemEventListener, LocationListener{
@@ -43,6 +48,11 @@ public class MainActivity extends AppCompatActivity
             Manifest.permission.CAMERA
     };
 
+    ViewGroup mapViewContainer;
+
+    public Handler mHandler;
+    private RoadViewPopupMenu mPopupMenu;
+    View dummyViewForAnchor;
 
     private MapView mMapView;
 
@@ -53,6 +63,8 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mHandler = new Handler();
+
         checkPermissions();
 
         mLocationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
@@ -61,7 +73,7 @@ public class MainActivity extends AppCompatActivity
 
         setContentView(R.layout.activity_main);
 
-        ViewGroup mapViewContainer = (ViewGroup) findViewById(R.id.map_view_root);
+        mapViewContainer = (ViewGroup) findViewById(R.id.map_view_root);
         MapLayout mapLayout = new MapLayout(this);
         mMapView = mapLayout.getMapView();
         mMapView.setOpenAPIKeyAuthenticationResultListener(this);
@@ -70,6 +82,14 @@ public class MainActivity extends AppCompatActivity
         mMapView.setMapType(MapView.MapType.Standard);
 
         mapViewContainer.addView(mapLayout);
+
+        dummyViewForAnchor = new View(this);
+        dummyViewForAnchor.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+        dummyViewForAnchor.setBackgroundColor(Color.TRANSPARENT);
+
+        mapViewContainer.addView(dummyViewForAnchor);
+        dummyViewForAnchor.setX(mapViewContainer.getX() + mapViewContainer.getWidth() / 2);
+        dummyViewForAnchor.setY(mapViewContainer.getY() + mapViewContainer.getHeight() / 2);
     }
 
 
@@ -117,14 +137,23 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onPOIItemSelected(MapView mapView, MapPOIItem mapPOIItem) {
-
+        // move camera to selected poi item
+        mapView.setMapCenterPoint(mapPOIItem.getMapPoint(), true);
     }
 
     @Override
     public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem) {
         if(mapPOIItem.getTag() == 0) { // current position
-            Intent intent = new Intent(this, MyRoadViewActivity.class);
-            startActivity(intent);
+
+//            Intent intent = new Intent(this, MyRoadViewActivity.class);
+//            startActivity(intent);
+            dummyViewForAnchor.setX(mapViewContainer.getX() + mapViewContainer.getWidth() / 2);
+            dummyViewForAnchor.setY(mapViewContainer.getY() + mapViewContainer.getHeight() / 2);
+            Log.e(TAG, "X: " + dummyViewForAnchor.getX() + ",  Y: " + dummyViewForAnchor.getY());
+            RoadViewPopupMenu popupMenu = new RoadViewPopupMenu(this, dummyViewForAnchor);
+            String[] menus = {"Show Kakao Roadview", "Show My Roadview"};
+            popupMenu.SetMenu(menus);
+            popupMenu.show();
         }
     }
 
@@ -204,7 +233,7 @@ public class MainActivity extends AppCompatActivity
 
         // draw pin on current(initial) location
         MapPOIItem marker = new MapPOIItem();
-        marker.setItemName("Add My Road View");
+        marker.setItemName("Show Road Views");
         marker.setTag(0);
         marker.setMapPoint(currentMapPoint);
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin);
